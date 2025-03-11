@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="MoodBoard.css" />
+  <title>SayIt</title>
+
+  <div id="aboutSayIt">
+    <p id="aboutText">"SayIt" is designed for capturing and organizing your thoughts, quotes, and inspirations.</p>
+  </div>
+</head>
+
+<body>
+  <main>
+    <h1>SayIt</h1>
+    <div id="container">
+      <div id="Board"></div>
+    </div>
+    <div id="side-bar">
+      <input type="button" value="Add image" id="image_btn" />
+      <input type="button" value="Add notes" id="note_btn" />
+    </div>
+  </main>
+</body>
+<script>
+  const submit_verse = document.getElementById("note_btn");
+
+  submit_verse.addEventListener("click", AddingVerse);
+
+  function AddingVerse() {
+    const verse = document.createElement("div");
+    verse.classList.add("note");
+    verse.style.position = "relative";
+
+    const addVerse = document.getElementById("Board");
+    const delete_btn = document.createElement("button");
+    const textSpan = document.createElement("span");
+
+    textSpan.contentEditable = true;
+    verse.appendChild(textSpan);
+    verse.appendChild(delete_btn);
+    addVerse.appendChild(verse);
+
+    function deletingVerse() {
+      delete_btn.innerText = "X";
+      delete_btn.contentEditable = false;
+      delete_btn.style.position = "absolute";
+      delete_btn.style.top = "5px";
+      delete_btn.style.right = "5px";
+
+      delete_btn.addEventListener("click", function () {
+        const currentNotes = JSON.parse(localStorage.getItem("userNotes")) || [];
+        let index = currentNotes.findIndex((note) => note.text === textSpan.innerText.trim());
+
+        if (index >= 0) {
+          currentNotes.splice(index, 1);
+          localStorage.setItem("userNotes", JSON.stringify(currentNotes));
+          verse.remove();
+        }
+      });
+    }
+
+    deletingVerse();
+    mousePost(verse);
+    saveNotes();
+  }
+
+  function mousePost(verse) {
+    let offsetX, offsetY;
+    verse.addEventListener("mousedown", function (event) {
+      offsetX = event.clientX - verse.offsetLeft;
+      offsetY = event.clientY - verse.offsetTop;
+
+      function moveNote(event) {
+        let newPostX = event.clientX - offsetX;
+        let newPostY = event.clientY - offsetY;
+
+        verse.style.left = newPostX + "px";
+        verse.style.top = newPostY + "px";
+      }
+
+      document.addEventListener("mousemove", moveNote);
+
+      document.addEventListener(
+        "mouseup",
+        function () {
+          document.removeEventListener("mousemove", moveNote);
+          saveNotes();
+        },
+        { once: true }
+      );
+    });
+
+    verse.addEventListener("input", function () {
+      saveNotes();
+    });
+  }
+
+  // LOCAL STORAGE
+  function saveNotes() {
+    const notes = Array.from(document.querySelectorAll(".note")).map((note) => ({
+      text: note.querySelector("span").innerText.trim(),
+      left: note.style.left || note.offsetLeft + "px",
+      top: note.style.top || note.offsetTop + "px",
+    }));
+
+    localStorage.setItem("userNotes", JSON.stringify(notes));
+  }
+
+  function loadNotes() {
+    var board = document.getElementById("Board");
+    board.innerHTML = "";
+
+    var userNotes = JSON.parse(localStorage.getItem("userNotes")) || [];
+
+    userNotes.forEach((userObj) => {
+      var verseDiv = document.createElement("div");
+      verseDiv.classList.add("note");
+      verseDiv.style.position = "relative";
+      verseDiv.style.left = userObj.left;
+      verseDiv.style.top = userObj.top;
+
+      var textSpan = document.createElement("span");
+      textSpan.innerText = userObj.text || "";
+      textSpan.contentEditable = true;
+      verseDiv.appendChild(textSpan);
+
+      var delete_btn = document.createElement("button");
+      delete_btn.innerText = "X";
+      delete_btn.contentEditable = false;
+      delete_btn.style.position = "absolute";
+      delete_btn.style.top = "5px";
+      delete_btn.style.right = "5px";
+
+      verseDiv.appendChild(delete_btn);
+      board.appendChild(verseDiv);
+
+      deletingVerse(verseDiv, delete_btn);
+      mousePost(verseDiv);
+    });
+  }
+
+  function deletingVerse(verse, delete_btn) {
+    delete_btn.addEventListener("click", function () {
+      const currentNotes = JSON.parse(localStorage.getItem("userNotes")) || [];
+      let index = currentNotes.findIndex((note) => note.text === verse.querySelector("span").innerText.trim());
+
+      if (index >= 0) {
+        currentNotes.splice(index, 1);
+        localStorage.setItem("userNotes", JSON.stringify(currentNotes));
+        verse.remove();
+      }
+    });
+  }
+
+  loadNotes();
+
+</script>
+
+</html>
