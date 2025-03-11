@@ -24,12 +24,29 @@
     </div>
   </main>
 </body>
-<script>
-  const submit_verse = document.getElementById("note_btn");
+<script type="module">
+  import {
+    initializeApp
+  } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+  import {
+    getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc
+  } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-  submit_verse.addEventListener("click", AddingVerse);
+  const firebaseConfig = {
+    apiKey: "AIzaSyDVhu_gW0hPGfUNnGRUFr9XewGt5R3Ggzc",
+    authDomain: "sayit-763f4.firebaseapp.com",
+    projectId: "sayit-763f4",
+    storageBucket: "sayit-763f4.appspot.com",
+    messagingSenderId: "85906182073",
+    appId: "1:85906182073:web:f1effb5a1c89fc23217068"
+  };
 
-  function AddingVerse() {
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  document.getElementById("note_btn").addEventListener("click", AddingVerse);
+
+  async function AddingVerse() {
     const verse = document.createElement("div");
     verse.classList.add("note");
     verse.style.position = "relative";
@@ -43,28 +60,32 @@
     verse.appendChild(delete_btn);
     addVerse.appendChild(verse);
 
-    function deletingVerse() {
-      delete_btn.innerText = "X";
-      delete_btn.contentEditable = false;
-      delete_btn.style.position = "absolute";
-      delete_btn.style.top = "5px";
-      delete_btn.style.right = "5px";
+    delete_btn.innerText = "X";
+    delete_btn.style.position = "absolute";
+    delete_btn.style.top = "5px";
+    delete_btn.style.right = "5px";
 
-      delete_btn.addEventListener("click", function () {
-        const currentNotes = JSON.parse(localStorage.getItem("userNotes")) || [];
-        let index = currentNotes.findIndex((note) => note.text === textSpan.innerText.trim());
+    const noteData = {
+      text: "",
+      left: verse.style.left || "50px",
+      top: verse.style.top || "50px"
+    };
 
-        if (index >= 0) {
-          currentNotes.splice(index, 1);
-          localStorage.setItem("userNotes", JSON.stringify(currentNotes));
-          verse.remove();
-        }
+    const docRef = await addDoc(collection(db, "notes"), noteData);
+    verse.dataset.id = docRef.id;
+
+    textSpan.addEventListener("input", async function () {
+      await updateDoc(doc(db, "notes", verse.dataset.id), {
+        text: textSpan.innerText.trim()
       });
-    }
+    });
 
-    deletingVerse();
+    delete_btn.addEventListener("click", async function () {
+      await deleteDoc(doc(db, "notes", verse.dataset.id));
+      verse.remove();
+    });
+
     mousePost(verse);
-    saveNotes();
   }
 
   function mousePost(verse) {
@@ -83,80 +104,59 @@
 
       document.addEventListener("mousemove", moveNote);
 
-      document.addEventListener(
-        "mouseup",
-        function () {
-          document.removeEventListener("mousemove", moveNote);
-          saveNotes();
-        },
-        { once: true }
-      );
-    });
+      document.addEventListener("mouseup", async function () {
+        document.removeEventListener("mousemove", moveNote);
 
-    verse.addEventListener("input", function () {
-      saveNotes();
+        await updateDoc(doc(db, "notes", verse.dataset.id), {
+          left: verse.style.left,
+          top: verse.style.top
+        });
+      }, { once: true });
     });
   }
 
-  // LOCAL STORAGE
-  function saveNotes() {
-    const notes = Array.from(document.querySelectorAll(".note")).map((note) => ({
-      text: note.querySelector("span").innerText.trim(),
-      left: note.style.left || note.offsetLeft + "px",
-      top: note.style.top || note.offsetTop + "px",
-    }));
-
-    localStorage.setItem("userNotes", JSON.stringify(notes));
-  }
-
-  function loadNotes() {
-    var board = document.getElementById("Board");
+  async function loadNotes() {
+    const board = document.getElementById("Board");
     board.innerHTML = "";
 
-    var userNotes = JSON.parse(localStorage.getItem("userNotes")) || [];
-
-    userNotes.forEach((userObj) => {
-      var verseDiv = document.createElement("div");
+    const querySnapshot = await getDocs(collection(db, "notes"));
+    querySnapshot.forEach((docSnap) => {
+      const verseDiv = document.createElement("div");
       verseDiv.classList.add("note");
       verseDiv.style.position = "relative";
-      verseDiv.style.left = userObj.left;
-      verseDiv.style.top = userObj.top;
+      verseDiv.style.left = docSnap.data().left;
+      verseDiv.style.top = docSnap.data().top;
+      verseDiv.dataset.id = docSnap.id;
 
-      var textSpan = document.createElement("span");
-      textSpan.innerText = userObj.text || "";
+      const textSpan = document.createElement("span");
+      textSpan.innerText = docSnap.data().text || "";
       textSpan.contentEditable = true;
       verseDiv.appendChild(textSpan);
 
-      var delete_btn = document.createElement("button");
+      const delete_btn = document.createElement("button");
       delete_btn.innerText = "X";
-      delete_btn.contentEditable = false;
       delete_btn.style.position = "absolute";
       delete_btn.style.top = "5px";
       delete_btn.style.right = "5px";
 
+      delete_btn.addEventListener("click", async function () {
+        await deleteDoc(doc(db, "notes", verseDiv.dataset.id));
+        verseDiv.remove();
+      });
+
+      textSpan.addEventListener("input", async function () {
+        await updateDoc(doc(db, "notes", verseDiv.dataset.id), {
+          text: textSpan.innerText.trim()
+        });
+      });
+
       verseDiv.appendChild(delete_btn);
       board.appendChild(verseDiv);
-
-      deletingVerse(verseDiv, delete_btn);
       mousePost(verseDiv);
     });
   }
 
-  function deletingVerse(verse, delete_btn) {
-    delete_btn.addEventListener("click", function () {
-      const currentNotes = JSON.parse(localStorage.getItem("userNotes")) || [];
-      let index = currentNotes.findIndex((note) => note.text === verse.querySelector("span").innerText.trim());
-
-      if (index >= 0) {
-        currentNotes.splice(index, 1);
-        localStorage.setItem("userNotes", JSON.stringify(currentNotes));
-        verse.remove();
-      }
-    });
-  }
-
   loadNotes();
-
 </script>
 
 </html>
