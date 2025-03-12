@@ -46,6 +46,27 @@
 
   document.getElementById("note_btn").addEventListener("click", AddingVerse);
 
+  function showMobileMessage() {
+    const message = document.createElement("div");
+    message.innerText = "Tap and hold to move notes.";
+    message.style.position = "fixed";
+    message.style.bottom = "10px";
+    message.style.left = "50%";
+    message.style.transform = "translateX(-50%)";
+    message.style.background = "black";
+    message.style.color = "white";
+    message.style.padding = "8px 12px";
+    message.style.borderRadius = "5px";
+    message.style.fontSize = "14px";
+    message.style.zIndex = "1000";
+    document.body.appendChild(message);
+    setTimeout(() => message.remove(), 3000);
+  }
+
+  if (navigator.userAgent.match(/Mobi/)) {
+    showMobileMessage();
+  }
+
   async function AddingVerse() {
     const verse = document.createElement("div");
     verse.classList.add("note");
