@@ -54,7 +54,7 @@
     verse.style.top = "50px";
     verse.style.cursor = "grab";
     verse.style.border = "1px dashed gray";
-    verse.title = "Drag to move";
+    verse.title = "Drag to move (Not movable on mobile)";
 
     const addVerse = document.getElementById("Board");
     const delete_btn = document.createElement("button");
@@ -94,6 +94,12 @@
   }
 
   function enableDragging(verse) {
+    if (/Mobi|Android/i.test(navigator.userAgent)) {
+      verse.style.cursor = "default";
+      verse.title = "Notes are immovable on mobile";
+      return;
+    }
+
     let offsetX, offsetY, isDragging = false;
     
     function startDrag(event) {
@@ -124,11 +130,8 @@
     }
 
     verse.addEventListener("mousedown", startDrag);
-    verse.addEventListener("touchstart", startDrag);
     document.addEventListener("mousemove", moveDrag);
-    document.addEventListener("touchmove", moveDrag);
     document.addEventListener("mouseup", stopDrag);
-    document.addEventListener("touchend", stopDrag);
   }
 
   async function loadNotes() {
@@ -144,7 +147,7 @@
       verseDiv.style.top = docSnap.data().top;
       verseDiv.style.cursor = "grab";
       verseDiv.style.border = "1px dashed gray";
-      verseDiv.title = "Drag to move";
+      verseDiv.title = "Drag to move (Not movable on mobile)";
       verseDiv.dataset.id = docSnap.id;
 
       const textSpan = document.createElement("span");
