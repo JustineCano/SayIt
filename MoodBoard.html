@@ -49,7 +49,12 @@
   async function AddingVerse() {
     const verse = document.createElement("div");
     verse.classList.add("note");
-    verse.style.position = "relative";
+    verse.style.position = "absolute";
+    verse.style.left = "50px";
+    verse.style.top = "50px";
+    verse.style.cursor = "grab";
+    verse.style.border = "1px dashed gray";
+    verse.title = "Drag to move";
 
     const addVerse = document.getElementById("Board");
     const delete_btn = document.createElement("button");
@@ -67,8 +72,8 @@
 
     const noteData = {
       text: "",
-      left: verse.style.left || "50px",
-      top: verse.style.top || "50px"
+      left: verse.style.left,
+      top: verse.style.top
     };
 
     const docRef = await addDoc(collection(db, "notes"), noteData);
@@ -85,34 +90,45 @@
       verse.remove();
     });
 
-    mousePost(verse);
+    enableDragging(verse);
   }
 
-  function mousePost(verse) {
-    let offsetX, offsetY;
-    verse.addEventListener("mousedown", function (event) {
-      offsetX = event.clientX - verse.offsetLeft;
-      offsetY = event.clientY - verse.offsetTop;
+  function enableDragging(verse) {
+    let offsetX, offsetY, isDragging = false;
+    
+    function startDrag(event) {
+      if (event.target.tagName === "SPAN") return;
+      isDragging = true;
+      verse.style.cursor = "grabbing";
+      const rect = verse.getBoundingClientRect();
+      offsetX = (event.touches ? event.touches[0].clientX : event.clientX) - rect.left;
+      offsetY = (event.touches ? event.touches[0].clientY : event.clientY) - rect.top;
+    }
 
-      function moveNote(event) {
-        let newPostX = event.clientX - offsetX;
-        let newPostY = event.clientY - offsetY;
+    function moveDrag(event) {
+      if (!isDragging) return;
+      let newPostX = (event.touches ? event.touches[0].clientX : event.clientX) - offsetX;
+      let newPostY = (event.touches ? event.touches[0].clientY : event.clientY) - offsetY;
+      verse.style.left = `${newPostX}px`;
+      verse.style.top = `${newPostY}px`;
+    }
 
-        verse.style.left = newPostX + "px";
-        verse.style.top = newPostY + "px";
-      }
+    function stopDrag() {
+      if (!isDragging) return;
+      isDragging = false;
+      verse.style.cursor = "grab";
+      updateDoc(doc(db, "notes", verse.dataset.id), {
+        left: verse.style.left,
+        top: verse.style.top
+      });
+    }
 
-      document.addEventListener("mousemove", moveNote);
-
-      document.addEventListener("mouseup", async function () {
-        document.removeEventListener("mousemove", moveNote);
-
-        await updateDoc(doc(db, "notes", verse.dataset.id), {
-          left: verse.style.left,
-          top: verse.style.top
-        });
-      }, { once: true });
-    });
+    verse.addEventListener("mousedown", startDrag);
+    verse.addEventListener("touchstart", startDrag);
+    document.addEventListener("mousemove", moveDrag);
+    document.addEventListener("touchmove", moveDrag);
+    document.addEventListener("mouseup", stopDrag);
+    document.addEventListener("touchend", stopDrag);
   }
 
   async function loadNotes() {
@@ -123,9 +139,12 @@
     querySnapshot.forEach((docSnap) => {
       const verseDiv = document.createElement("div");
       verseDiv.classList.add("note");
-      verseDiv.style.position = "relative";
+      verseDiv.style.position = "absolute";
       verseDiv.style.left = docSnap.data().left;
       verseDiv.style.top = docSnap.data().top;
+      verseDiv.style.cursor = "grab";
+      verseDiv.style.border = "1px dashed gray";
+      verseDiv.title = "Drag to move";
       verseDiv.dataset.id = docSnap.id;
 
       const textSpan = document.createElement("span");
@@ -152,7 +171,7 @@
 
       verseDiv.appendChild(delete_btn);
       board.appendChild(verseDiv);
-      mousePost(verseDiv);
+      enableDragging(verseDiv);
     });
   }
 
